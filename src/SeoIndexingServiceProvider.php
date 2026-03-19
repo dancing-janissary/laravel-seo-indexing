@@ -37,6 +37,12 @@ class SeoIndexingServiceProvider extends ServiceProvider
         );
 
         $this->registerClients();
+
+        $this->app->singleton(IndexingLogger::class, function () {
+            return new IndexingLogger(
+                enabled: config('seo-indexing.logging.enabled', true),
+            );
+        });
         $this->registerManager();
     }
 
@@ -108,12 +114,13 @@ class SeoIndexingServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SeoIndexingManager::class, function ($app) {
             return new SeoIndexingManager(
-                $app->make(GoogleIndexingClient::class),
-                $app->make(IndexNowClient::class),
-                config('seo-indexing'),
+                google:  $app->make(GoogleIndexingClient::class),
+                indexNow: $app->make(IndexNowClient::class),
+                logger:  $app->make(IndexingLogger::class),    // ← add this
+                config:  config('seo-indexing'),
             );
         });
-
+    
         $this->app->alias(SeoIndexingManager::class, 'seo-indexing');
     }
 
@@ -130,6 +137,7 @@ class SeoIndexingServiceProvider extends ServiceProvider
             SeoIndexingManager::class,
             GoogleIndexingClient::class,
             IndexNowClient::class,
+            IndexingLogger::class,
             'seo-indexing',
         ];
     }
