@@ -1,0 +1,22 @@
+# Dependencies
+/vendor/
+
+# Testing
+/coverage/
+.phpunit.cache
+.pest/
+
+# Environment & secrets
+.env
+*.json.key
+*-service-account.json
+*credentials*.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Build
+/node_modules/
