@@ -10,22 +10,26 @@
         "google",
         "indexnow",
         "bing",
-        "sitemap"
+        "yandex",
+        "sitemap",
+        "search-engine",
+        "seznam",
+        "naver",
+        "search console"
     ],
     "authors": [
         {
-            "name": "Your Name",
-            "email": "you@example.com"
+            "name": "Hazarcan Doğa Bakan",
+            "email": "hazarcandogabakan@gmail.com"
         }
     ],
     "require": {
         "php": "^8.2",
-        "google/apiclient": "^2.19",
-        "google/auth": "^1.34",
-        "illuminate/database": "^11.0",
+        "illuminate/support": "^11.0",
         "illuminate/http": "^11.0",
+        "illuminate/database": "^11.0",
         "illuminate/queue": "^11.0",
-        "illuminate/support": "^11.0"
+        "google/apiclient": "^2.15"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
@@ -42,7 +46,16 @@
             "DancingJanissary\\SeoIndexing\\Tests\\": "tests/"
         }
     },
+    "scripts": {
+        "post-autoload-dump": [
+            "Google\\Task\\Composer::cleanup"
+        ],
+        "test": "vendor/bin/pest"
+    },
     "extra": {
+        "google/apiclient-services": [
+            "Indexing"
+        ],
         "laravel": {
             "providers": [
                 "DancingJanissary\\SeoIndexing\\SeoIndexingServiceProvider"
