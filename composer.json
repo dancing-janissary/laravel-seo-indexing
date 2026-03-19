@@ -20,11 +20,12 @@
     ],
     "require": {
         "php": "^8.2",
-        "illuminate/support": "^11.0",
-        "illuminate/http": "^11.0",
+        "google/apiclient": "^2.19",
+        "google/auth": "^1.34",
         "illuminate/database": "^11.0",
+        "illuminate/http": "^11.0",
         "illuminate/queue": "^11.0",
-        "google/auth": "^1.34"
+        "illuminate/support": "^11.0"
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
