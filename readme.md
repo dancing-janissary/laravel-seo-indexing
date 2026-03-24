@@ -24,6 +24,7 @@ Automatically notify **Google Indexing API** and **IndexNow** (Bing, Yandex, Sez
   - [Controlling Which Pages Get Indexed](#controlling-which-pages-get-indexed)
   - [Manual Submission via Facade](#manual-submission-via-facade)
   - [Batch Submission](#batch-submission)
+  - [Multi-Language Routes](#multi-language-routes)
   - [Disabling Indexing for Bulk Operations](#disabling-indexing-for-bulk-operations)
 - [Queue Setup](#queue-setup)
 - [Logging & Querying Submission History](#logging--querying-submission-history)
@@ -47,6 +48,7 @@ Automatically notify **Google Indexing API** and **IndexNow** (Bing, Yandex, Sez
 - ✅ **Auto-pruning** — configurable log retention via Laravel's built-in model pruning
 - ✅ **Deduplication** — skips re-submission if the same URL was successfully submitted recently
 - ✅ **Multi-engine IndexNow** — pings Bing, Yandex, and others in a single batch request
+- ✅ **Multi-language routes** — submit all locale-specific URLs (e.g. `/en/page`, `/fr/page`) in one batch when a model changes
 
 ---
 
@@ -340,6 +342,44 @@ SeoIndexing::deleteBatch([
     'https://example.com/removed-two',
 ]);
 ```
+
+---
+
+### Multi-Language Routes
+
+If your application serves content in multiple languages with locale-prefixed URLs (e.g. `/en/page`, `/fr/page`, `/de/page`), override `getIndexableUrls()` to return all locale variants. When a model is created, updated, or deleted, all URLs are submitted as a batch:
+
+```php
+class Page extends Model
+{
+    use Indexable;
+
+    public function getIndexableUrls(): ?array
+    {
+        return collect(['en', 'fr', 'de'])->mapWithKeys(fn ($locale) => [
+            $locale => route('pages.show', ['locale' => $locale, 'slug' => $this->slug]),
+        ])->all();
+    }
+}
+```
+
+This produces:
+```
+https://example.com/en/my-page
+https://example.com/fr/my-page
+https://example.com/de/my-page
+```
+
+All three URLs are submitted together via `submitBatch()` whenever the model fires a `saved`, `deleted`, or `restored` event.
+
+**How it works:**
+
+- Return `null` (default) to use the single-URL `getIndexableUrl()` behavior — fully backward compatible
+- Return an associative array keyed by locale (keys are for your convenience; only the URL values are submitted)
+- Return an empty array to fall back to single-URL mode
+- The `index()` method also respects `getIndexableUrls()` for manual submissions
+
+> **Note:** Neither Google Indexing API nor IndexNow accept hreflang metadata. They only receive URLs. For search engines to understand locale relationships, ensure your HTML includes proper `<link rel="alternate" hreflang="...">` tags. The Indexing API tells Google *"crawl this URL now"* — Google discovers hreflang annotations when it crawls the page.
 
 ---
 

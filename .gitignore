@@ -20,3 +20,6 @@
 
 # Build
 /node_modules/
+google-indexing-credentials.json
+.gitnexus
+.claude/worktrees/
