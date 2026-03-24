@@ -15,7 +15,9 @@
         "search-engine",
         "seznam",
         "naver",
-        "search console"
+        "search console",
+        "multi-language",
+        "i18n"
     ],
     "authors": [
         {
@@ -33,8 +35,7 @@
     },
     "require-dev": {
         "orchestra/testbench": "^9.0",
-        "pestphp/pest": "^2.0",
-        "pestphp/pest-plugin-laravel": "^2.0"
+        "phpunit/phpunit": "^10.5"
     },
     "autoload": {
         "psr-4": {
@@ -68,9 +69,6 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
+        "sort-packages": true
     }
 }

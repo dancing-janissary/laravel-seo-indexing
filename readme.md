@@ -552,12 +552,14 @@ Be aware of the following limits when planning your usage:
 
 ## Testing
 
-The package uses [Pest](https://pestphp.com/) with [Orchestra Testbench](https://github.com/orchestral/testbench).
+The package uses [PHPUnit](https://phpunit.de/) with [Orchestra Testbench](https://github.com/orchestral/testbench).
 
 Run the test suite:
 
 ```bash
 composer test
+# or directly
+vendor/bin/phpunit
 ```
 
 ### Mocking in your application

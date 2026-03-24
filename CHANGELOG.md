@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-24
+
 ### Added
 - Multi-language route support via `getIndexableUrls()` method on the `Indexable` trait
 - When a model defines locale-specific URLs, all variants are batch-submitted on create/update/delete
 - Fully backward compatible — models without `getIndexableUrls()` work exactly as before
+- PHPUnit test suite (106 tests) covering all package components
 
 ## [1.0.0] - 2024-01-01
 
