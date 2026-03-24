@@ -50,7 +50,7 @@
         "post-autoload-dump": [
             "Google\\Task\\Composer::cleanup"
         ],
-        "test": "vendor/bin/pest"
+        "test": "vendor/bin/phpunit"
     },
     "extra": {
         "google/apiclient-services": [
