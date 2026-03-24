@@ -20,3 +20,5 @@
 
 # Build
 /node_modules/
+google-indexing-credentials.json
+.gitnexus
