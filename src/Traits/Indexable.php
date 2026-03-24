@@ -25,10 +25,7 @@ trait Indexable
         */
         static::saved(function (Model $model) {
             if ($model->shouldIndex()) {
-                app(SeoIndexingManager::class)->submit(
-                    url:       $model->getIndexableUrl(),
-                    indexable: $model,
-                );
+                $model->dispatchIndexingUrls(SeoIndexingManager::ACTION_UPDATED);
             }
         });
 
@@ -38,10 +35,7 @@ trait Indexable
         */
         static::deleted(function (Model $model) {
             if ($model->shouldIndex()) {
-                app(SeoIndexingManager::class)->delete(
-                    url:       $model->getIndexableUrl(),
-                    indexable: $model,
-                );
+                $model->dispatchIndexingUrls(SeoIndexingManager::ACTION_DELETED);
             }
         });
 
@@ -53,13 +47,50 @@ trait Indexable
         if (static::hasRestoreEvent()) {
             static::restored(function (Model $model) {
                 if ($model->shouldIndex()) {
-                    app(SeoIndexingManager::class)->submit(
-                        url:       $model->getIndexableUrl(),
-                        indexable: $model,
-                    );
+                    $model->dispatchIndexingUrls(SeoIndexingManager::ACTION_UPDATED);
                 }
             });
         }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get all locale-specific URLs for this model (multi-language support)
+    |--------------------------------------------------------------------------
+    | Override this in your model to return URLs for each locale.
+    | Returns null by default, which falls back to getIndexableUrl().
+    |
+    | Example override:
+    |
+    |   public function getIndexableUrls(): ?array
+    |   {
+    |       return collect(['en', 'fr', 'de'])->mapWithKeys(fn ($locale) => [
+    |           $locale => route('pages.show', ['locale' => $locale, 'slug' => $this->slug]),
+    |       ])->all();
+    |   }
+    */
+    public function getIndexableUrls(): ?array
+    {
+        return null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resolve the URLs to submit (single or multi-locale)
+    |--------------------------------------------------------------------------
+    | Returns an array of one or more URLs. If getIndexableUrls() returns
+    | a non-empty array, those URLs are used. Otherwise falls back to
+    | the single URL from getIndexableUrl().
+    */
+    protected function resolveIndexableUrls(): array
+    {
+        $urls = $this->getIndexableUrls();
+
+        if ($urls !== null && count($urls) > 0) {
+            return array_values($urls);
+        }
+
+        return [$this->getIndexableUrl()];
     }
 
     /*
@@ -131,15 +162,39 @@ trait Indexable
     */
     public function index(string $action = SeoIndexingManager::ACTION_UPDATED): void
     {
-        $manager = app(SeoIndexingManager::class);
-
-        match ($action) {
-            SeoIndexingManager::ACTION_UPDATED => $manager->submit($this->getIndexableUrl(), $this),
-            SeoIndexingManager::ACTION_DELETED => $manager->delete($this->getIndexableUrl(), $this),
-            default => throw new \InvalidArgumentException(
+        if (! in_array($action, [SeoIndexingManager::ACTION_UPDATED, SeoIndexingManager::ACTION_DELETED], true)) {
+            throw new \InvalidArgumentException(
                 "Invalid indexing action: [{$action}]. " .
                 "Use SeoIndexingManager::ACTION_UPDATED or ACTION_DELETED."
-            ),
+            );
+        }
+
+        $this->dispatchIndexingUrls($action);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dispatch resolved URLs to the indexing manager
+    |--------------------------------------------------------------------------
+    | Routes through submit/delete for single URLs (preserves per-URL dedup)
+    | or submitBatch/deleteBatch for multiple locale URLs.
+    */
+    protected function dispatchIndexingUrls(string $action): void
+    {
+        $manager = app(SeoIndexingManager::class);
+        $urls = $this->resolveIndexableUrls();
+
+        if (count($urls) === 1) {
+            match ($action) {
+                SeoIndexingManager::ACTION_UPDATED => $manager->submit($urls[0], $this),
+                SeoIndexingManager::ACTION_DELETED => $manager->delete($urls[0], $this),
+            };
+            return;
+        }
+
+        match ($action) {
+            SeoIndexingManager::ACTION_UPDATED => $manager->submitBatch($urls, $this),
+            SeoIndexingManager::ACTION_DELETED => $manager->deleteBatch($urls, $this),
         };
     }
 
