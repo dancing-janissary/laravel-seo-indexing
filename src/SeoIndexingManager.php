@@ -141,7 +141,7 @@ class SeoIndexingManager
             indexableId:   $indexable?->getKey(),
         );
 
-        $this->configureJob($job)->dispatch();
+        dispatch($this->configureJob($job));
     }
 
     /*
@@ -165,7 +165,7 @@ class SeoIndexingManager
             batchUrls:     $urls,
         );
 
-        $this->configureJob($job)->dispatch();
+        dispatch($this->configureJob($job));
     }
 
     /*

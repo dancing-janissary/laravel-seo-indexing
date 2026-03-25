@@ -134,8 +134,10 @@ class SeoIndexingManagerTest extends TestCase
 
     // ── Queue dispatch ──────────────────────────────────────────────
 
-    public function test_submit_does_not_call_client_directly_when_queue_enabled(): void
+    public function test_submit_dispatches_job_when_queue_enabled(): void
     {
+        Queue::fake();
+
         $this->logger->method('wasRecentlySubmitted')->willReturn(false);
 
         // When queue is enabled, the client should NOT be called directly —
@@ -149,15 +151,17 @@ class SeoIndexingManagerTest extends TestCase
             'queue'   => ['enabled' => true, 'connection' => 'sync', 'name' => 'indexing'],
         ]);
 
-        // Note: configureJob($job)->dispatch() has a bug — it calls the static
-        // dispatch() which creates a new instance with no args. This will throw.
-        // This test documents the bug.
-        $this->expectException(\ArgumentCountError::class);
         $manager->submit('https://example.com/page');
+
+        Queue::assertPushed(SubmitUrlJob::class, function (SubmitUrlJob $job) {
+            return $job->queue === 'indexing';
+        });
     }
 
-    public function test_submit_batch_does_not_call_client_directly_when_queue_enabled(): void
+    public function test_submit_batch_dispatches_job_when_queue_enabled(): void
     {
+        Queue::fake();
+
         $this->google->expects($this->never())->method('submitBatch');
         $this->logger->expects($this->never())->method('logMany');
 
@@ -166,8 +170,11 @@ class SeoIndexingManagerTest extends TestCase
             'queue'   => ['enabled' => true, 'connection' => 'sync', 'name' => 'indexing'],
         ]);
 
-        $this->expectException(\ArgumentCountError::class);
         $manager->submitBatch(['https://example.com/a', 'https://example.com/b']);
+
+        Queue::assertPushed(SubmitUrlJob::class, function (SubmitUrlJob $job) {
+            return $job->queue === 'indexing';
+        });
     }
 
     // ── Action constants ────────────────────────────────────────────
