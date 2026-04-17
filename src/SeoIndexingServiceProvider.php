@@ -70,12 +70,20 @@ class SeoIndexingServiceProvider extends ServiceProvider
                 => database_path('migrations'),
         ], 'seo-indexing-migrations');
 
+        // AI agent skills (Claude Code / compatible agents)
+        $this->publishes([
+            __DIR__ . '/../resources/skills/seo-indexing'
+                => base_path('.claude/skills/seo-indexing'),
+        ], 'seo-indexing-skills');
+
         // Publish all at once with the main tag
         $this->publishes([
             __DIR__ . '/../config/seo-indexing.php'
                 => config_path('seo-indexing.php'),
             __DIR__ . '/../database/migrations'
                 => database_path('migrations'),
+            __DIR__ . '/../resources/skills/seo-indexing'
+                => base_path('.claude/skills/seo-indexing'),
         ], 'seo-indexing');
     }
 
