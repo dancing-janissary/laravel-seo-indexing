@@ -12,8 +12,8 @@ return [
     | without removing its credentials.
     */
     'engines' => [
-        'google'   => true,
-        'indexnow' => true,
+        'google'   => env('GOOGLE_INDEXING_ENABLED', true),
+        'indexnow' => env('INDEXNOW_ENABLED', true),
     ],
 
     /*
