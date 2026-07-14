@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-14
+
+### Improved
+- Google batch indexing failures now report why a URL had no sub-response (empty body, partial batch, or Content-ID key mismatch), with structured `payload` diagnostics for logging
+
 ## [1.1.0] - 2026-03-24
 
 ### Added

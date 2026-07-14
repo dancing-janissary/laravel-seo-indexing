@@ -92,4 +92,62 @@ class GoogleIndexingClientTest extends TestCase
             unlink($tmpFile);
         }
     }
+
+    public function test_missing_batch_response_message_describes_empty_body(): void
+    {
+        $client = $this->makeClient();
+
+        $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
+            1,
+            'response-1',
+            ['https://example.com/a', 'https://example.com/b'],
+            null,
+        ]);
+
+        $this->assertStringContainsString('batch position 2/2', $message);
+        $this->assertStringContainsString('expected key "response-1"', $message);
+        $this->assertStringContainsString('empty body', $message);
+    }
+
+    public function test_missing_batch_response_message_describes_partial_batch(): void
+    {
+        $client = $this->makeClient();
+
+        $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
+            1,
+            'response-1',
+            ['https://example.com/a', 'https://example.com/b', 'https://example.com/c'],
+            ['response-0' => new \stdClass()],
+        ]);
+
+        $this->assertStringContainsString('only 1 of 3 batch sub-responses', $message);
+        $this->assertStringContainsString('response-0', $message);
+        $this->assertStringContainsString('omitted from the multipart batch response', $message);
+    }
+
+    public function test_missing_batch_response_message_describes_key_mismatch(): void
+    {
+        $client = $this->makeClient();
+
+        $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
+            1,
+            'response-1',
+            ['https://example.com/a', 'https://example.com/b'],
+            [
+                'response-0' => new \stdClass(),
+                'response-2' => new \stdClass(),
+            ],
+        ]);
+
+        $this->assertStringContainsString('Content-ID mismatch', $message);
+        $this->assertStringContainsString('response-0, response-2', $message);
+    }
+
+    private function invokeProtected(object $object, string $method, array $args): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$args);
+    }
 }

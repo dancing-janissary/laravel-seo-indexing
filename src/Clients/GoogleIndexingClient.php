@@ -120,7 +120,18 @@ class GoogleIndexingClient extends BaseClient implements IndexingClientContract
                         url:        $url,
                         action:     $action,
                         httpStatus: 0,
-                        message:    'No response received in batch',
+                        message:    $this->buildMissingBatchResponseMessage(
+                            $index,
+                            $responseKey,
+                            $urls,
+                            $batchResponses,
+                        ),
+                        payload:    $this->buildMissingBatchResponsePayload(
+                            $index,
+                            $responseKey,
+                            $urls,
+                            $batchResponses,
+                        ),
                     );
                     continue;
                 }
@@ -229,6 +240,97 @@ class GoogleIndexingClient extends BaseClient implements IndexingClientContract
         }
 
         return $this->service;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Diagnose a missing batch response
+    |--------------------------------------------------------------------------
+    | Google's batch client maps each sub-response to response-{key}. When a
+    | key is absent, the HTTP batch succeeded but this URL's part was not
+    | parsed — usually an empty body, a partial multipart response, or a
+    | Content-ID mismatch between request and response parts.
+    */
+    protected function buildMissingBatchResponseMessage(
+        int $index,
+        string $expectedKey,
+        array $urls,
+        ?array $batchResponses,
+    ): string {
+        $totalRequested = count($urls);
+        $position       = $index + 1;
+
+        if ($batchResponses === null) {
+            return sprintf(
+                'No response for URL at batch position %d/%d (expected key "%s"): Google batch HTTP response had an empty body, so no sub-responses could be parsed.',
+                $position,
+                $totalRequested,
+                $expectedKey,
+            );
+        }
+
+        $receivedKeys  = array_keys($batchResponses);
+        $totalReceived = count($receivedKeys);
+
+        if ($totalReceived === 0) {
+            return sprintf(
+                'No response for URL at batch position %d/%d (expected key "%s"): batch executed but Google returned no parseable sub-responses.',
+                $position,
+                $totalRequested,
+                $expectedKey,
+            );
+        }
+
+        if ($totalReceived < $totalRequested) {
+            return sprintf(
+                'No response for URL at batch position %d/%d (expected key "%s"): Google returned only %d of %d batch sub-responses (received keys: %s). This URL\'s part was omitted from the multipart batch response.',
+                $position,
+                $totalRequested,
+                $expectedKey,
+                $totalReceived,
+                $totalRequested,
+                $this->formatBatchResponseKeys($receivedKeys),
+            );
+        }
+
+        return sprintf(
+            'No response for URL at batch position %d/%d (expected key "%s"): batch returned %d sub-responses but none matched this key (received keys: %s). This usually indicates a Content-ID mismatch in Google\'s multipart batch response.',
+            $position,
+            $totalRequested,
+            $expectedKey,
+            $totalReceived,
+            $this->formatBatchResponseKeys($receivedKeys),
+        );
+    }
+
+    protected function buildMissingBatchResponsePayload(
+        int $index,
+        string $expectedKey,
+        array $urls,
+        ?array $batchResponses,
+    ): array {
+        return [
+            'batch' => [
+                'expected_key'    => $expectedKey,
+                'index'           => $index,
+                'position'        => $index + 1,
+                'total_requested' => count($urls),
+                'total_received'  => is_array($batchResponses) ? count($batchResponses) : 0,
+                'received_keys'   => is_array($batchResponses) ? array_keys($batchResponses) : [],
+            ],
+        ];
+    }
+
+    protected function formatBatchResponseKeys(array $keys): string
+    {
+        $limit = 10;
+
+        if (count($keys) <= $limit) {
+            return implode(', ', $keys);
+        }
+
+        return implode(', ', array_slice($keys, 0, $limit))
+            . sprintf(' (+%d more)', count($keys) - $limit);
     }
 
     /*
