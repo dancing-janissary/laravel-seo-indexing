@@ -93,19 +93,30 @@ class GoogleIndexingClientTest extends TestCase
         }
     }
 
+    public function test_batch_request_key_is_never_falsy_for_index_zero(): void
+    {
+        $client = $this->makeClient();
+
+        $key = $this->invokeProtected($client, 'batchRequestKey', [0]);
+
+        $this->assertSame('req-0', $key);
+        $this->assertFalse(false == $key, 'Batch key must survive Google\\Http\\Batch::add falsy check');
+        $this->assertSame('req-1', $this->invokeProtected($client, 'batchRequestKey', [1]));
+    }
+
     public function test_missing_batch_response_message_describes_empty_body(): void
     {
         $client = $this->makeClient();
 
         $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
             1,
-            'response-1',
+            'response-req-1',
             ['https://example.com/a', 'https://example.com/b'],
             null,
         ]);
 
         $this->assertStringContainsString('batch position 2/2', $message);
-        $this->assertStringContainsString('expected key "response-1"', $message);
+        $this->assertStringContainsString('expected key "response-req-1"', $message);
         $this->assertStringContainsString('empty body', $message);
     }
 
@@ -115,13 +126,13 @@ class GoogleIndexingClientTest extends TestCase
 
         $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
             1,
-            'response-1',
+            'response-req-1',
             ['https://example.com/a', 'https://example.com/b', 'https://example.com/c'],
-            ['response-0' => new \stdClass()],
+            ['response-req-0' => new \stdClass()],
         ]);
 
         $this->assertStringContainsString('only 1 of 3 batch sub-responses', $message);
-        $this->assertStringContainsString('response-0', $message);
+        $this->assertStringContainsString('response-req-0', $message);
         $this->assertStringContainsString('omitted from the multipart batch response', $message);
     }
 
@@ -131,16 +142,16 @@ class GoogleIndexingClientTest extends TestCase
 
         $message = $this->invokeProtected($client, 'buildMissingBatchResponseMessage', [
             1,
-            'response-1',
+            'response-req-1',
             ['https://example.com/a', 'https://example.com/b'],
             [
-                'response-0' => new \stdClass(),
-                'response-2' => new \stdClass(),
+                'response-req-0' => new \stdClass(),
+                'response-req-2' => new \stdClass(),
             ],
         ]);
 
-        $this->assertStringContainsString('Content-ID mismatch', $message);
-        $this->assertStringContainsString('response-0, response-2', $message);
+        $this->assertStringContainsString('Content-ID / request-key mismatch', $message);
+        $this->assertStringContainsString('response-req-0, response-req-2', $message);
     }
 
     private function invokeProtected(object $object, string $method, array $args): mixed

@@ -102,9 +102,15 @@ class GoogleIndexingClient extends BaseClient implements IndexingClientContract
                 $notification->setUrl($url);
                 $notification->setType($action);
 
+                /*
+                | Google\Http\Batch::add() treats falsy keys as "auto-generate"
+                | via loose comparison (false == $key). Numeric string "0" is
+                | falsy in PHP, so index 0 would become mt_rand() and break
+                | response mapping. Always use a non-falsy request id.
+                */
                 $batch->add(
                     $service->urlNotifications->publish($notification),
-                    (string) $index,
+                    $this->batchRequestKey($index),
                 );
             }
 
@@ -112,7 +118,7 @@ class GoogleIndexingClient extends BaseClient implements IndexingClientContract
             $client->setUseBatch(false);
 
             foreach ($urls as $index => $url) {
-                $responseKey = 'response-' . $index;
+                $responseKey = 'response-' . $this->batchRequestKey($index);
 
                 if (! isset($batchResponses[$responseKey])) {
                     $results[] = IndexingResult::failure(
@@ -294,13 +300,24 @@ class GoogleIndexingClient extends BaseClient implements IndexingClientContract
         }
 
         return sprintf(
-            'No response for URL at batch position %d/%d (expected key "%s"): batch returned %d sub-responses but none matched this key (received keys: %s). This usually indicates a Content-ID mismatch in Google\'s multipart batch response.',
+            'No response for URL at batch position %d/%d (expected key "%s"): batch returned %d sub-responses but none matched this key (received keys: %s). This usually indicates a Content-ID / request-key mismatch in Google\'s multipart batch response.',
             $position,
             $totalRequested,
             $expectedKey,
             $totalReceived,
             $this->formatBatchResponseKeys($receivedKeys),
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stable batch request key
+    |--------------------------------------------------------------------------
+    | Must never be loosely equal to false — see Google\Http\Batch::add().
+    */
+    protected function batchRequestKey(int $index): string
+    {
+        return 'req-' . $index;
     }
 
     protected function buildMissingBatchResponsePayload(
